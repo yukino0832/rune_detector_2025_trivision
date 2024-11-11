@@ -1,0 +1,41 @@
+%YAML 1.2
+color: red
+mode: big
+fps: 30
+image:
+  width: 1280
+  height: 1024
+detect:
+  brightness_threshold:
+    blue: 
+      arrow: 140
+      armor: 110
+    red:
+      arrow: 150
+      armor: 90
+  local_roi:
+    distance_ratio: 1.2
+    width: 200
+  armor_center_vertical_distance_threshold: 90
+  global_roi_length_ratio: 1.5
+  arrow:
+    lightline:
+      area:
+        min: 50
+        max: 500
+      aspect_ratio_max: 5
+      num:
+        min: 4
+        max: 13
+    same_area_ratio_max: 5
+    aspect_ratio:
+      min: 2
+      max: 12
+    area_max: 4000
+  armor:
+
+  centerR:
+    area:
+      min: 100
+      max: 1000
+    aspect_ratio_max: 2
