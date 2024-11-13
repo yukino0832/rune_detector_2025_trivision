@@ -5,6 +5,8 @@ fps: 30
 image:
   width: 1280
   height: 1024
+armor:
+  radius: 150
 detect:
   brightness_threshold:
     blue: 
@@ -12,7 +14,7 @@ detect:
       armor: 110
     red:
       arrow: 150
-      armor: 90
+      armor: 40
   local_roi:
     distance_ratio: 1.2
     width: 200
@@ -33,7 +35,13 @@ detect:
       max: 12
     area_max: 4000
   armor:
-
+    circlelight:
+      radius:
+        min: 10
+        max: 50
+      area:
+        min: 3000
+        max: 30000
   centerR:
     area:
       min: 100

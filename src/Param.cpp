@@ -39,6 +39,10 @@ namespace rune
         fsImage["width"] >> IMAGE_WIDTH;
         fsImage["height"] >> IMAGE_HEIGHT;
 
+        // armor radius
+        auto armor = fs["armor"];
+        armor["radius"] >> ARMOR_RADIUS;
+
         // brightness threshold
         auto fsDetect = fs["detect"];
         auto fsBrightness = fsDetect["brightness_threshold"][colorStr];
@@ -69,9 +73,11 @@ namespace rune
         fsArrow["area_max"] >> MAX_ARROW_AREA;
 
         // armor
-        /*
-         * TODO
-         */
+        auto fsArmor = fsDetect["armor"];
+        fsArmor["circlelight"]["radius"]["min"] >> MIN_ARMOR_CIRCLELIGHT_RADIUS;
+        fsArmor["circlelight"]["radius"]["max"] >> MAX_ARMOR_CIRCLELIGHT_RADIUS;
+        fsArmor["circlelight"]["area"]["min"] >> MIN_ARMOR_CIRCLELIGHT_AREA;
+        fsArmor["circlelight"]["area"]["max"] >> MAX_ARMOR_CIRCLELIGHT_AREA;
 
         // centerR
         auto fsCenterR = fsDetect["centerR"];

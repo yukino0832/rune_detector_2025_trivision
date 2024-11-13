@@ -4,6 +4,8 @@ namespace rune
 {
     std::mutex MUTEX;
 
+    double Arrow_angle;
+
     /**
      * @brief Construct a new Lightline:: Lightline object
      * @param[in] contour       轮廓点集
@@ -31,6 +33,53 @@ namespace rune
          * height。 根据上述关系可以确立四个角点位置。如果是装甲板灯条，则其还需要结合中心 R 来得到中心 R
          * 参照下的角点位置。
          */
+        if (m_rotatedRect.size.width > m_rotatedRect.size.height)
+        {
+            m_tl = points[1];
+            m_tr = points[2];
+            m_bl = points[0];
+            m_br = points[3];
+        }
+        else
+        {
+            m_tl = points[0];
+            m_tr = points[1];
+            m_bl = points[3];
+            m_br = points[2];
+        }
+        // 得到相对原图的角点和中心位置
+        m_tl += localRoi.tl() + globalRoi.tl();
+        m_tr += localRoi.tl() + globalRoi.tl();
+        m_bl += localRoi.tl() + globalRoi.tl();
+        m_br += localRoi.tl() + globalRoi.tl();
+        m_center += localRoi.tl() + globalRoi.tl();
+        m_x = m_center.x, m_y = m_center.y;
+    }
+
+    /**
+     * @brief Construct a new Lightline:: Circlelight object
+     * @param[in] contour       轮廓点集
+     * @param[in] roi           roi 用来设置正确的中心及角点
+     */
+    Circlelight::Circlelight(const cv::Vec3f &circle, const cv::Rect2f &localRoi,
+                             const cv::Rect2f &globalRoi)
+    {
+        m_center = cv::Point2f(circle[0], circle[1]);
+        m_radius = circle[2];
+        int numPoints = 100; // 用于近似圆的点数
+        for (int i = 0; i < numPoints; ++i)
+        {
+            float angle = 2 * CV_PI * i / numPoints;
+            float x = m_center.x + m_radius * std::cos(angle);
+            float y = m_center.y + m_radius * std::sin(angle);
+            m_contour.emplace_back(x, y);
+        }
+        m_rotatedRect = cv::minAreaRect(m_contour);
+        m_rotatedRect.angle = Arrow_angle;
+        m_area = m_rotatedRect.size.width * m_rotatedRect.size.height;
+        m_aspectRatio = (m_rotatedRect.size.width > m_rotatedRect.size.height) ? m_rotatedRect.size.width / m_rotatedRect.size.height : m_rotatedRect.size.height / m_rotatedRect.size.width;
+        std::array<cv::Point2f, 4> points;
+        m_rotatedRect.points(points.begin());
         if (m_rotatedRect.size.width > m_rotatedRect.size.height)
         {
             m_tl = points[1];
@@ -213,6 +262,7 @@ namespace rune
         {
             return false;
         }
+        Arrow_angle = arrow.m_angle;
         return true;
     }
 
@@ -241,7 +291,106 @@ namespace rune
         return true;
     }
 
-    // TODO Armor detector
+    /**
+     * @brief 设置装甲板参数
+     * @param[in] circlelight   圆形灯条
+     */
+    void Armor::set(const Circlelight &circlelight)
+    {
+        m_center = circlelight.m_center;
+        m_x = m_center.x, m_y = m_center.y;
+        m_circlelight = circlelight;
+        m_tl = circlelight.m_tl;
+        m_tr = circlelight.m_tr;
+        m_bl = circlelight.m_bl;
+        m_br = circlelight.m_br;
+        return;
+    }
+
+    /**
+     * @brief
+     * 设置装甲板角点，注意大小为4，顺序必须为装甲板左下角点、左上角点、右上角点、右下角点
+     * @param[in] points        输入的角点向量
+     */
+    void Armor::setCornerPoints(const std::vector<cv::Point2f> &points)
+    {
+        m_bl = points.at(0);
+        m_tl = points.at(1);
+        m_tr = points.at(2);
+        m_br = points.at(3);
+    }
+
+    /**
+     * @brief 寻找装甲板圆形灯条，并将其存入一个Circlelight对象。成功返回 true，否则返回
+     * false。
+     * @param[in] image         带有中心区域的图片
+     * @param[in] Circlelight   存储的圆形灯条
+     * @param[in] globalRoi     全局 roi
+     * @param[in] localRoi      局部 roi
+     * @return true
+     * @return false
+     */
+    bool findArmorCirclelight(const cv::Mat &image, Circlelight &circlelight,
+                              const cv::Rect2f &globalRoi, const cv::Rect2f &localRoi)
+    {
+        // 霍夫圆检测
+        std::vector<cv::Vec3f> circles;
+        cv::GaussianBlur(image, image, cv::Size(9, 9), 2, 2);
+        cv::HoughCircles(image, circles, cv::HOUGH_GRADIENT, 1, 0.01, 100, 60, Param::MIN_ARMOR_CIRCLELIGHT_RADIUS, Param::MAX_ARMOR_CIRCLELIGHT_RADIUS);
+        if (circles.empty())
+        {
+            return false; // 没有检测到圆
+        }
+        // 更新半径最大的圆
+        cv::Vec3f max_circle = *std::max_element(circles.begin(), circles.end(),
+                                                 [](const cv::Vec3f &a, const cv::Vec3f &b)
+                                                 {
+                                                     return a[2] < b[2];
+                                                 });
+        circlelight = Circlelight(max_circle, globalRoi, localRoi);
+        // cv::circle(image, cv::Point2f(max_circle[0], max_circle[1]), max_circle[2], cv::Scalar(0, 255, 0), 2);
+        // cv::imshow("circle", image);
+        // cv::waitKey(0);
+        return true;
+    }
+
+    /**
+     * @brief 根据提取的灯条匹配装甲板，成功返回 true，否则返回 false
+     * @param[in] circlelight   圆形灯条
+     * @param[in] centers       中心灯条
+     * @param[in] armorPtr      装甲板
+     * @param[in] arrowPtr      箭头
+     * @return true
+     * @return false
+     */
+    bool findArmor(Armor &armor, const Circlelight &circlelight_possible, const Arrow &arrow)
+    {
+        if (inRange(circlelight_possible.m_area, Param::MIN_ARMOR_CIRCLELIGHT_AREA, Param::MAX_ARMOR_CIRCLELIGHT_AREA) == false)
+        {
+            return false;
+        }
+        // 此处判断装甲板中心与箭头中心的距离，如果不符则检测失败
+        if (inRange(pointPointDistance(circlelight_possible.m_center, arrow.m_center), arrow.m_length * 0.8, arrow.m_length * 1.5) == false)
+        {
+            return false;
+        }
+        armor.set(circlelight_possible);
+        return true;
+    }
+
+    /**
+     * @brief 设置中心 R
+     * @param[in] lightline
+     */
+    void CenterR::set(const Lightline &lightline)
+    {
+        m_lightline = lightline;
+        m_boundingRect = cv::boundingRect(lightline.m_contour);
+        // 由于灯条角点和中心点已经设置过 roi，因此这里不需要重新设置
+        m_center = lightline.m_center;
+        m_x = m_center.x, m_y = m_center.y;
+        return;
+    }
 
     /**
      * @brief 寻找符合中心 R 要求的中心灯条，并将其存入一个向量中。成功返回 true，否则返回
@@ -295,32 +444,20 @@ namespace rune
     bool findCenterR(CenterR &center, const std::vector<Lightline> &lightlines, const Arrow &arrow,
                      const Armor &armor)
     {
-        // 设置中心 R 到外侧装甲板灯条的距离范围
-        // 不用到内侧装甲板灯条的位置的原因是内侧装甲板灯条识别的时候可能和箭头灯条连在一起导致距离出现误差
-        const double distance2OutsideArmor{(armor.m_outside.m_length + armor.m_inside.m_length) *
-                                           Param::POWER_RUNE_RADIUS * 1.13 /
-                                           (Param::ARMOR_OUTSIDE_WIDTH + Param::ARMOR_INSIDE_WIDTH)};
+        // 设置中心 R 到装甲板中心的距离范围
+        const double distance2ArmorCenter{armor.m_circlelight.m_radius * Param::POWER_RUNE_RADIUS / Param::ARMOR_RADIUS};
         const double ratio = 0.85;
-        const double maxDistance2OutsideArmor{distance2OutsideArmor / ratio};
-        const double minDistance2OutsideArmor{distance2OutsideArmor * ratio};
+        const double maxDistance2ArmorCenter{distance2ArmorCenter / ratio};
+        const double minDistance2ArmorCenter{distance2ArmorCenter * ratio};
         // 设置中心 R 到箭头所在直线的最大距离
-        const double maxDistance2ArrowLine{0.3 * armor.m_inside.m_width};
+        const double maxDistance2ArrowLine{0.3 * armor.m_circlelight.m_radius};
         std::vector<Lightline> filteredLightlines;
         for (auto iter = lightlines.begin(); iter != lightlines.end(); ++iter)
         {
-            /**
-             * 之前设置装甲板内外灯条的时候是根据面积判断的，外部灯条面积小于内部灯条。但有可能出现误差导致内部灯条面积更小。
-             * 所以在这里比较可能的中心灯条到装甲板内部灯条和外部灯条的距离，距离大的就是外部灯条。
-             * 内外灯条的设置在 Detector::setArmor() 中设置
-             */
-            cv::Point2f armorOutsideCenter = pointPointDistance(iter->m_center, armor.m_inside.m_center) >
-                                                     pointPointDistance(iter->m_center, armor.m_outside.m_center)
-                                                 ? armor.m_inside.m_center
-                                                 : armor.m_outside.m_center;
-            double p2p{pointPointDistance(iter->m_center, armorOutsideCenter)};
+            double p2p{pointPointDistance(iter->m_center, armor.m_center)};
             double p2l{pointLineDistance(iter->m_center, armor.m_center, arrow.m_center)};
-            // 判断到装甲板外部灯条的距离
-            if (inRange(p2p, minDistance2OutsideArmor, maxDistance2OutsideArmor) == false)
+            // 判断到装甲板中心的距离
+            if (inRange(p2p, minDistance2ArmorCenter, maxDistance2ArmorCenter) == false)
             {
                 continue;
             }
@@ -673,12 +810,12 @@ namespace rune
         // armor roi 区域的图像为检测图像，center roi 区域为备用图像
         cv::Mat detect = (m_imageArmor & m_localMask)(m_armorRoi);
         cv::Mat backup = (m_imageArmor & m_localMask)(m_centerRoi);
-        std::vector<Lightline> lightlines;
+        Circlelight circlelight;
         // 调换标志位，如果检测不到，则调换检测图像和备用图像，并将其置为 true
         bool reverse = false;
     RESTART:
         // 寻找符合装甲板边框要求的灯条
-        if (findArmorLightlines(detect, lightlines, m_globalRoi, m_armorRoi) == false)
+        if (findArmorCirclelight(detect, circlelight, m_globalRoi, m_armorRoi) == false)
         {
             // 如果找不到并且已经调换过图像了，则检测失败
             if (reverse == true)
@@ -692,14 +829,12 @@ namespace rune
             // 回到检测装甲板灯条处
             goto RESTART;
         }
-#if SHOW_IMAGE >= 2
-        for (const auto &lightline : lightlines)
-        {
-            draw(lightline, Param::DRAW_COLOR, 1, m_armorRoi);
-        }
+#if SHOW_IMAGE >= 1
+        cv::circle(m_imageShow, circlelight.m_center, circlelight.m_radius, Param::WHITE, 2);
+        cv::circle(m_imageShow, circlelight.m_center, 1, Param::WHITE, 2);
 #endif
         // 根据灯条匹配装甲板
-        if (findArmor(m_armor, lightlines, m_arrow) == false)
+        if (findArmor(m_armor, circlelight, m_arrow) == false)
         {
             if (reverse == true)
             {
@@ -710,9 +845,6 @@ namespace rune
             reverse = true;
             goto RESTART;
         }
-#if SHOW_IMAGE >= 1
-        cv::circle(m_imageShow, m_armor.m_center, m_armor.m_outside.m_length * 0.45, Param::WHITE, 2);
-#endif
         return true;
     }
 
@@ -747,68 +879,12 @@ namespace rune
         return true;
     }
 
-    /**
-     * @brief 装甲板四个角点需要根据其与中心的位置关系重新设置，以便于后面的 PnP 解算。之前的四个角点设置与
-     * Lightline 构造函数的角点一致。
-     */
     void Detector::setArmor()
     {
-
-        // 装甲板里外边框的重排序，之前根据面积确定边框，但可能不准确，现在根据到中心的距离确定
-        if (pointPointDistance(m_armor.m_inside.m_center, m_centerR.m_center) >
-            pointPointDistance(m_armor.m_outside.m_center, m_centerR.m_center))
-        {
-            std::swap(m_armor.m_inside, m_armor.m_outside);
-            std::swap(m_armor.m_tlIn, m_armor.m_tlOut);
-            std::swap(m_armor.m_trIn, m_armor.m_trOut);
-            std::swap(m_armor.m_blIn, m_armor.m_blOut);
-            std::swap(m_armor.m_brIn, m_armor.m_brOut);
-        }
-        /**
-         * 当中心 R 的纵坐标小于装甲板的纵坐标时，左上角和右下角、左下角和右上角的角点是相反的，需要交换这两对点。
-         * 但由于图像上存在误差，因此实际上设置中心 R
-         * 的纵坐标明显小于装甲板的纵坐标时才交换，其它情况下使用另一种判断方式，确保正确判断。
-         */
-        if (m_centerR.m_center.y < m_armor.m_center.y - Param::ARMOR_CENTER_VERTICAL_DISTANCE_THRESHOLD)
-        {
-            std::swap(m_armor.m_tlIn, m_armor.m_brIn);
-            std::swap(m_armor.m_tlOut, m_armor.m_brOut);
-            std::swap(m_armor.m_trIn, m_armor.m_blIn);
-            std::swap(m_armor.m_trOut, m_armor.m_blOut);
-        }
-        /**
-         * 另一种判断方式根据装甲板的横坐标和中心的横坐标，以及装甲板左上角和左下角横坐标的位置关系得到。
-         * 在中心 R 的纵坐标明显大于装甲板中心时不需要交换，因此在纵坐标关系不明显时才进行判断。
-         * 在上面的约束下，如果装甲板横坐标大于中心，则装甲板明显在中心右侧，此时根据之前的角点设置，左上角点横坐标大于左下角点横坐标时，判断装甲板在中心上面，否则为下面。
-         * 装甲板横坐标小于中心时同理。
-         * 注：前一种判断方式在纵坐标差距不明显时会出现误差，而后一种在横坐标差距不明显时会出现误差。
-         * 因此将两者结合起来使用，即在纵坐标差距明显时使用前一种，纵坐标差距不明显时使用后一种，可以实现全场景下的覆盖。
-         */
-        else if (m_centerR.m_center.y < m_armor.m_center.y + Param::ARMOR_CENTER_VERTICAL_DISTANCE_THRESHOLD)
-        {
-            if (((m_centerR.m_center.x < m_armor.m_center.x &&
-                  m_armor.m_inside.m_tl.x > m_armor.m_inside.m_bl.x) ||
-                 (m_centerR.m_center.x > m_armor.m_center.x &&
-                  m_armor.m_inside.m_tl.x < m_armor.m_inside.m_bl.x)) == false)
-            {
-                std::swap(m_armor.m_tlIn, m_armor.m_brIn);
-                std::swap(m_armor.m_trIn, m_armor.m_blIn);
-            }
-            if (((m_centerR.m_center.x < m_armor.m_center.x &&
-                  m_armor.m_outside.m_tl.x > m_armor.m_outside.m_bl.x) ||
-                 (m_centerR.m_center.x > m_armor.m_center.x &&
-                  m_armor.m_outside.m_tl.x < m_armor.m_outside.m_bl.x)) == false)
-            {
-                std::swap(m_armor.m_tlOut, m_armor.m_brOut);
-                std::swap(m_armor.m_trOut, m_armor.m_blOut);
-            }
-        }
 #if CONSOLE_OUTPUT >= 2
         MUTEX.lock();
         auto cameraPoints{getCameraPoints()};
-        file_R << cameraPoints[5].x << " " << cameraPoints[5].y << std::endl;
-        file_armor << m_armor.m_center.x << " " << m_armor.m_center.y << std::endl;
-        std::cout << "R标坐标:" << cameraPoints[5] << std::endl;
+        std::cout << "R标坐标:" << cameraPoints[4] << std::endl;
         std::cout << "装甲板中心坐标:" << m_armor.m_center << std::endl;
         MUTEX.unlock();
 #endif

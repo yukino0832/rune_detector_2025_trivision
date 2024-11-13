@@ -37,11 +37,7 @@ namespace rune
         inline static cv::Scalar DRAW_COLOR;
 
         // 装甲板
-        inline static double ARMOR_OUTSIDE_WIDTH;
-        inline static double ARMOR_INSIDE_WIDTH;
-        inline static double ARMOR_INSIDE_Y;
-        inline static double ARMOR_OUTSIDE_Y;
-        inline static double ARMOR_OUTSIDE_HEIGHT;
+        inline static double ARMOR_RADIUS;
 
         // 符半径
         inline static const double POWER_RUNE_RADIUS{700.0};
@@ -81,9 +77,11 @@ namespace rune
         inline static double MAX_SAME_ARROW_AREA_RATIO;
 
         // 构成装甲板有效检测的阈值
-        /*
-        TODO
-        */
+        inline static double MIN_ARMOR_CIRCLELIGHT_RADIUS;
+        inline static double MAX_ARMOR_CIRCLELIGHT_RADIUS;
+
+        inline static double MIN_ARMOR_CIRCLELIGHT_AREA;
+        inline static double MAX_ARMOR_CIRCLELIGHT_AREA;
 
         // R标所在区域
         inline static double MIN_CENTER_AREA;

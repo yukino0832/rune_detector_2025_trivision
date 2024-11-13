@@ -33,6 +33,31 @@ namespace rune
     };
 
     /**
+     * @brief 圆形灯条
+     */
+    struct Circlelight
+    {
+        Circlelight() = default;
+        Circlelight(const cv::Vec3f &circle, const cv::Rect2f &globalRoi,
+                    const cv::Rect2f &localroi = cv::Rect2f(0, 0, Param::IMAGE_WIDTH, Param::IMAGE_HEIGHT));
+        cv::Vec3f m_circle;               // 轮廓圆
+        std::vector<cv::Point> m_contour; // 轮廓点集
+        double m_contourArea;             // 轮廓面积
+        double m_area;                    // 外接旋转矩形面积
+        cv::RotatedRect m_rotatedRect;    // 外接旋转矩形
+        cv::Point2f m_tl;                 // 左上角点
+        cv::Point2f m_tr;                 // 右上角点
+        cv::Point2f m_bl;                 // 左下角点
+        cv::Point2f m_br;                 // 右下角点
+        cv::Point2f m_center;             // 中心点
+        double m_radius;                  // 半径
+        double m_x;                       // 中心点 x 坐标
+        double m_y;                       // 中心点 y 坐标
+        double m_angle;                   // 旋转矩形角度
+        double m_aspectRatio;             // 旋转矩形长宽比
+    };
+
+    /**
      * @brief 箭头
      */
     struct Arrow
@@ -55,6 +80,18 @@ namespace rune
      */
     struct Armor
     {
+        Armor() = default;
+        void set(const Circlelight &circlelight);
+        inline std::vector<cv::Point2f> getCornerPoints() { return {m_bl, m_tl, m_tr, m_br}; }
+        void setCornerPoints(const std::vector<cv::Point2f> &points);
+        cv::Point2f m_tl;          // 左上角点
+        cv::Point2f m_tr;          // 右上角点
+        cv::Point2f m_bl;          // 左下角点
+        cv::Point2f m_br;          // 右下角点
+        Circlelight m_circlelight; // 圆形灯条
+        cv::Point2f m_center;      // 装甲板中心点
+        double m_x;                // 中心点 x 坐标
+        double m_y;                // 中心点 y 坐标
     };
 
     /**
@@ -77,9 +114,8 @@ namespace rune
     bool sameArrow(const Lightline &l1, const Lightline &l2);
 
     // Armor detector
-    /*
-     * TODO
-     */
+    bool findArmorCirclelight(const cv::Mat &image, Circlelight &circlelight, const cv::Rect2f &globalRoi, const cv::Rect2f &localRoi);
+    bool findArmor(Armor &armor, const Circlelight &circlelight, const Arrow &arrow);
 
     // Center R detector
     bool findCenterLightlines(const cv::Mat &binary, std::vector<Lightline> &lightlines,
@@ -109,12 +145,12 @@ namespace rune
 
         /**
          * @brief
-         * 得到像素坐标系特征点，分别为装甲板的
+         * 得到像素坐标系特征点，分别为装甲板的左下、左上、右上、右下、中心 R
          * @return std::vector<cv::Point2f>
          */
         inline std::vector<cv::Point2f> getCameraPoints()
         {
-            return {};
+            return {m_armor.m_bl, m_armor.m_tl, m_armor.m_tr, m_armor.m_br, m_centerR.m_center};
         }
 
     private:
