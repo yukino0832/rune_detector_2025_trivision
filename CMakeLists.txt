@@ -19,6 +19,7 @@ include_directories(
     ${CERES_INCLUDE_DIRS}
     ${EIGEN3_INCLUDE_DIR}
     include
+    /usr/include/mindvision
 )
 
 aux_source_directory(src SRC)
@@ -28,4 +29,5 @@ target_link_libraries(
     rune_detector
     ${OpenCV_LIBS}
     ${CERES_LIBRARIES}
+    -lMVSDK
 )

@@ -348,9 +348,9 @@ namespace rune
                                                      return a[2] < b[2];
                                                  });
         circlelight = Circlelight(max_circle, globalRoi, localRoi);
-        // cv::circle(image, cv::Point2f(max_circle[0], max_circle[1]), max_circle[2], cv::Scalar(0, 255, 0), 2);
+        cv::circle(image, cv::Point2f(max_circle[0], max_circle[1]), max_circle[2], cv::Scalar(0, 255, 0), 2);
         // cv::imshow("circle", image);
-        // cv::waitKey(0);
+        // cv::waitKey(1);
         return true;
     }
 
@@ -622,6 +622,7 @@ namespace rune
     {
         bool reverse = false;
         preprocess(frame);
+
         if (detectArrow() == false)
         {
             m_status = Status::ARROW_FAILURE;
@@ -634,6 +635,7 @@ namespace rune
             m_status = Status::ARMOR_FAILURE;
             goto FAIL;
         }
+
         if (detectCenterR() == false)
         {
             m_status = Status::CENTER_FAILURE;
@@ -665,6 +667,10 @@ namespace rune
      */
     void Detector::preprocess(const Frame &frame)
     {
+
+        // // Added
+        // frame.m_image
+
         m_imageRaw = frame.m_image;
         m_imageShow = frame.m_image.clone();
         m_frameTime = frame.m_time;
@@ -691,6 +697,7 @@ namespace rune
 #if SHOW_IMAGE >= 3
         cv::imshow("arrow binary", m_imageArrow);
         cv::imshow("armor binary", m_imageArmor);
+        cv::waitKey(1);
 #endif
         // 设置局部 roi
         m_localMask.setTo(0);
@@ -715,7 +722,6 @@ namespace rune
         // 灯条匹配箭头
         if (findArrow(m_arrow, lightlines, m_globalRoi) == false)
         {
-            // std::cout << "false" << std::endl;
             return false;
         }
 #if SHOW_IMAGE >= 1
