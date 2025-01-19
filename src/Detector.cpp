@@ -333,13 +333,34 @@ namespace rune
     bool findArmorCirclelight(const cv::Mat &image, Circlelight &circlelight,
                               const cv::Rect2f &globalRoi, const cv::Rect2f &localRoi)
     {
-        // 霍夫圆检测
+        std::vector<std::vector<cv::Point>> contours;
+        std::vector<cv::Vec4i> hierarchy;
+        cv::findContours(image, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+        // 存储圆的信息
         std::vector<cv::Vec3f> circles;
-        cv::GaussianBlur(image, image, cv::Size(9, 9), 2, 2);
-        cv::HoughCircles(image, circles, cv::HOUGH_GRADIENT, 1, 0.01, 100, 60, Param::MIN_ARMOR_CIRCLELIGHT_RADIUS, Param::MAX_ARMOR_CIRCLELIGHT_RADIUS);
+
+        // 遍历每个轮廓，检测圆形
+        for (const auto &contour : contours)
+        {
+            if (contour.size() >= 5 && cv::contourArea(contour) > Param::MIN_ARMOR_CIRCLELIGHT_AREA)
+            {
+                cv::RotatedRect ellipse = cv::fitEllipse(contour);
+                cv::Point2f center = ellipse.center;
+                cv::Size2f axes = ellipse.size;
+
+                // 判断长轴和短轴是否接近（圆形条件）
+                if (std::abs(axes.width - axes.height) < 10)
+                {
+                    double radius = static_cast<double>(axes.width / 2); // 半径取长轴的一半
+                    circles.emplace_back(cv::Vec3f(center.x, center.y, radius));
+                }
+            }
+        }
         if (circles.empty())
         {
-            return false; // 没有检测到圆
+            std::cout << "没有符合条件的圆" << std::endl;
+            return false;
         }
         // 更新半径最大的圆
         cv::Vec3f max_circle = *std::max_element(circles.begin(), circles.end(),
@@ -349,8 +370,24 @@ namespace rune
                                                  });
         circlelight = Circlelight(max_circle, globalRoi, localRoi);
         cv::circle(image, cv::Point2f(max_circle[0], max_circle[1]), max_circle[2], cv::Scalar(0, 255, 0), 2);
-        // cv::imshow("circle", image);
-        // cv::waitKey(1);
+
+        // // 霍夫圆检测
+        // std::vector<cv::Vec3f> circles;
+        // cv::GaussianBlur(image, image, cv::Size(9, 9), 2, 2);
+
+        // cv::HoughCircles(image, circles, cv::HOUGH_GRADIENT, 1, 0.01, 100, 60, Param::MIN_ARMOR_CIRCLELIGHT_RADIUS, Param::MAX_ARMOR_CIRCLELIGHT_RADIUS);
+        // if (circles.empty())
+        // {
+        //     return false; // 没有检测到圆
+        // }
+        // // 更新半径最大的圆
+        // cv::Vec3f max_circle = *std::max_element(circles.begin(), circles.end(),
+        //                                          [](const cv::Vec3f &a, const cv::Vec3f &b)
+        //                                          {
+        //                                              return a[2] < b[2];
+        //                                          });
+        // circlelight = Circlelight(max_circle, globalRoi, localRoi);
+        // cv::circle(image, cv::Point2f(max_circle[0], max_circle[1]), max_circle[2], cv::Scalar(0, 255, 0), 2);
         return true;
     }
 
@@ -653,6 +690,7 @@ namespace rune
         setArmor();
         setGlobalRoi();
         m_status = Status::SUCCESS;
+        std::cout << "success" << std::endl;
         return true;
     FAIL:
         // 如果检测失败，则将全局 roi 设为和原图片一样大小
@@ -692,9 +730,21 @@ namespace rune
         // 对灰度图进行二值化
         cv::threshold(temp, m_imageArrow, Param::ARROW_BRIGHTNESS_THRESHOLD, Param::MAX_BRIGHTNESS,
                       cv::THRESH_BINARY);
-        cv::threshold(temp, m_imageArmor, Param::ARMOR_BRIGHTNESS_THRESHOLD, Param::MAX_BRIGHTNESS,
+
+        // 设置阈值范围
+        double low_thresh = 18;   // 设置小于此值的部分为黑色
+        double high_thresh = 100; // 设置大于此值的部分为黑色
+        cv::inRange(temp, low_thresh, high_thresh, m_imageArmor);
+        cv::Mat kernel3 = cv::Mat::ones(3, 3, CV_8U);
+        cv::erode(m_imageArmor, m_imageArmor, kernel3, cv::Point(-1, -1), 2);
+        cv::Mat kernel5 = cv::Mat::ones(5, 5, CV_8U);
+        cv::dilate(m_imageArmor, m_imageArmor, kernel5, cv::Point(-1, -1), 2);
+        // cv::threshold(temp, m_imageArmor, Param::ARMOR_BRIGHTNESS_THRESHOLD, Param::MAX_BRIGHTNESS,
+        //               cv::THRESH_BINARY);
+        cv::threshold(temp, m_imageCenter, Param::ARMOR_BRIGHTNESS_THRESHOLD, Param::MAX_BRIGHTNESS,
                       cv::THRESH_BINARY);
 #if SHOW_IMAGE >= 3
+        cv::imshow("temp", temp);
         cv::imshow("arrow binary", m_imageArrow);
         cv::imshow("armor binary", m_imageArmor);
         cv::waitKey(1);
@@ -861,7 +911,7 @@ namespace rune
      */
     bool Detector::detectCenterR()
     {
-        m_imageCenter = (m_imageArmor & m_localMask)(m_centerRoi);
+        m_imageCenter = (m_imageCenter & m_localMask)(m_centerRoi);
         // 寻找中心灯条，可能是多个
         std::vector<Lightline> lightlines;
         if (findCenterLightlines(m_imageCenter, lightlines, m_globalRoi, m_centerRoi) == false)

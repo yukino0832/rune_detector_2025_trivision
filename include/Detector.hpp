@@ -55,6 +55,8 @@ namespace rune
         double m_y;                       // 中心点 y 坐标
         double m_angle;                   // 旋转矩形角度
         double m_aspectRatio;             // 旋转矩形长宽比
+
+        std::vector<std::vector<cv::Point>> m_contours;
     };
 
     /**

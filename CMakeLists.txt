@@ -11,7 +11,7 @@ endif()
 
 set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -DNDEBUG -flto -march=native")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DDEBUG -Wall -Wextra")
-
+set(CMAKE_BUILD_TYPE "Debug")
 find_package(OpenCV REQUIRED)
 find_package(Ceres REQUIRED)
 
