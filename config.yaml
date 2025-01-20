@@ -52,7 +52,7 @@ detect:
         max: 50
       area:
         min: 3000
-        max: 300000
+        max: 11000
   centerR:
     area:
       min: 100

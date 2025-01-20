@@ -5,191 +5,149 @@
 #include "Param.hpp"
 #include "Utility.hpp"
 
-namespace rune
-{
-    /**
-     * @brief 灯条
-     */
-    struct Lightline
-    {
-        Lightline() = default;
-        Lightline(const std::vector<cv::Point> &contour, const cv::Rect2f &globalRoi,
-                  const cv::Rect2f &localroi = cv::Rect2f(0, 0, Param::IMAGE_WIDTH, Param::IMAGE_HEIGHT));
-        std::vector<cv::Point> m_contour; // 轮廓点集
-        double m_contourArea;             // 轮廓面积
-        double m_area;                    // 外接旋转矩形面积
-        cv::RotatedRect m_rotatedRect;    // 外接旋转矩形
-        cv::Point2f m_tl;                 // 左上角点
-        cv::Point2f m_tr;                 // 右上角点
-        cv::Point2f m_bl;                 // 左下角点
-        cv::Point2f m_br;                 // 右下角点
-        cv::Point2f m_center;             // 中心点
-        double m_length;                  // 长度
-        double m_width;                   // 宽度
-        double m_x;                       // 中心点 x 坐标
-        double m_y;                       // 中心点 y 坐标
-        double m_angle;                   // 旋转矩形角度
-        double m_aspectRatio;             // 旋转矩形长宽比
-    };
+namespace rune {
+/**
+ * @brief 灯条
+ */
+struct Lightline {
+    Lightline() = default;
+    Lightline(const std::vector<cv::Point>& contour, const cv::Rect2f& globalRoi, const cv::Rect2f& localroi = cv::Rect2f(0, 0, Param::IMAGE_WIDTH, Param::IMAGE_HEIGHT));
+    std::vector<cv::Point> m_contour; // 轮廓点集
+    double m_contourArea;             // 轮廓面积
+    double m_area;                    // 外接旋转矩形面积
+    cv::RotatedRect m_rotatedRect;    // 外接旋转矩形
+    cv::Point2f m_tl;                 // 左上角点
+    cv::Point2f m_tr;                 // 右上角点
+    cv::Point2f m_bl;                 // 左下角点
+    cv::Point2f m_br;                 // 右下角点
+    cv::Point2f m_center;             // 中心点
+    double m_length;                  // 长度
+    double m_width;                   // 宽度
+    double m_x;                       // 中心点 x 坐标
+    double m_y;                       // 中心点 y 坐标
+    double m_angle;                   // 旋转矩形角度
+    double m_aspectRatio;             // 旋转矩形长宽比
+};
 
-    /**
-     * @brief 圆形灯条
-     */
-    struct Circlelight
-    {
-        Circlelight() = default;
-        Circlelight(const cv::Vec3f &circle, const cv::Rect2f &globalRoi,
-                    const cv::Rect2f &localroi = cv::Rect2f(0, 0, Param::IMAGE_WIDTH, Param::IMAGE_HEIGHT));
-        cv::Vec3f m_circle;               // 轮廓圆
-        std::vector<cv::Point> m_contour; // 轮廓点集
-        double m_contourArea;             // 轮廓面积
-        double m_area;                    // 外接旋转矩形面积
-        cv::RotatedRect m_rotatedRect;    // 外接旋转矩形
-        cv::Point2f m_tl;                 // 左上角点
-        cv::Point2f m_tr;                 // 右上角点
-        cv::Point2f m_bl;                 // 左下角点
-        cv::Point2f m_br;                 // 右下角点
-        cv::Point2f m_center;             // 中心点
-        double m_radius;                  // 半径
-        double m_x;                       // 中心点 x 坐标
-        double m_y;                       // 中心点 y 坐标
-        double m_angle;                   // 旋转矩形角度
-        double m_aspectRatio;             // 旋转矩形长宽比
+/**
+ * @brief 圆形灯条
+ */
+struct Circlelight {
+    Circlelight() = default;
+    Circlelight(const cv::Vec3f& circle, const cv::Rect2f& globalRoi, const cv::Rect2f& localroi = cv::Rect2f(0, 0, Param::IMAGE_WIDTH, Param::IMAGE_HEIGHT));
+    cv::Vec3f m_circle;   // 轮廓圆
+    double m_radius;      // 半径
+    cv::Point2f m_center; // 中心点
+    double m_x;           // 中心点 x 坐标
+    double m_y;           // 中心点 y 坐标
+};
 
-        std::vector<std::vector<cv::Point>> m_contours;
-    };
+/**
+ * @brief 箭头
+ */
+struct Arrow {
+    Arrow() = default;
+    void set(const std::vector<Lightline>& points, const cv::Point2f& roi);
+    std::vector<cv::Point> m_contour; // 轮廓点集
+    cv::RotatedRect m_rotatedRect;    // 外接旋转矩形
+    double m_length;                  // 长度
+    double m_width;                   // 宽度
+    cv::Point2f m_center;             // 中心点
+    double m_angle;                   // 角度
+    double m_aspectRatio;             // 长宽比
+    double m_area;                    // 面积
+    double m_fillRatio;               // 填充比例
+};
 
-    /**
-     * @brief 箭头
-     */
-    struct Arrow
-    {
-        Arrow() = default;
-        void set(const std::vector<Lightline> &points, const cv::Point2f &roi);
-        std::vector<cv::Point> m_contour; // 轮廓点集
-        cv::RotatedRect m_rotatedRect;    // 外接旋转矩形
-        double m_length;                  // 长度
-        double m_width;                   // 宽度
-        cv::Point2f m_center;             // 中心点
-        double m_angle;                   // 角度
-        double m_aspectRatio;             // 长宽比
-        double m_area;                    // 面积
-        double m_fillRatio;               // 填充比例
-    };
+/**
+ * @brief 装甲板
+ */
+struct Armor {
+    Armor() = default;
+    void set(const Circlelight& circlelight);
+    Circlelight m_circlelight; // 圆形灯条
+    cv::Point2f m_center;      // 装甲板中心点
+    double m_x;                // 中心点 x 坐标
+    double m_y;                // 中心点 y 坐标
+    cv::Point2f m_tl;          // 左上角点
+    cv::Point2f m_tr;          // 右上角点
+    cv::Point2f m_bl;          // 左下角点
+    cv::Point2f m_br;          // 右下角点
+};
 
-    /**
-     * @brief 装甲板
-     */
-    struct Armor
-    {
-        Armor() = default;
-        void set(const Circlelight &circlelight);
-        inline std::vector<cv::Point2f> getCornerPoints() { return {m_bl, m_tl, m_tr, m_br}; }
-        void setCornerPoints(const std::vector<cv::Point2f> &points);
-        cv::Point2f m_tl;          // 左上角点
-        cv::Point2f m_tr;          // 右上角点
-        cv::Point2f m_bl;          // 左下角点
-        cv::Point2f m_br;          // 右下角点
-        Circlelight m_circlelight; // 圆形灯条
-        cv::Point2f m_center;      // 装甲板中心点
-        double m_x;                // 中心点 x 坐标
-        double m_y;                // 中心点 y 坐标
-    };
+/**
+ * @brief 中心 R
+ */
+struct CenterR {
+    CenterR() = default;
+    void set(const Lightline& contour);
+    Lightline m_lightline;   // 中心 R 灯条
+    cv::Point2f m_center;    // 中心 R 点
+    cv::Rect m_boundingRect; // 中心 R 最小正矩形
+    double m_x;              // 中心 R x 坐标
+    double m_y;              // 中心 R y 坐标
+};
 
-    /**
-     * @brief 中心 R
-     */
-    struct CenterR
-    {
-        CenterR() = default;
-        void set(const Lightline &contour);
-        Lightline m_lightline;   // 中心 R 灯条
-        cv::Point2f m_center;    // 中心 R 点
-        cv::Rect m_boundingRect; // 中心 R 最小正矩形
-        double m_x;              // 中心 R x 坐标
-        double m_y;              // 中心 R y 坐标
-    };
+// Arrow detector
+void findArrowLightlines(const cv::Mat& binary, std::vector<Lightline>& lightlines, const cv::Rect2f& roi);
+bool findArrow(Arrow& arrow, const std::vector<Lightline>& lightlines, const cv::Rect2f& roi);
+bool sameArrow(const Lightline& l1, const Lightline& l2);
 
-    // Arrow detector
-    void findArrowLightlines(const cv::Mat &binary, std::vector<Lightline> &lightlines, const cv::Rect2f &roi);
-    bool findArrow(Arrow &arrow, const std::vector<Lightline> &lightlines, const cv::Rect2f &roi);
-    bool sameArrow(const Lightline &l1, const Lightline &l2);
+// Armor detector
+bool findArmorCirclelight(const cv::Mat& image, Circlelight& circlelight, const cv::Rect2f& globalRoi, const cv::Rect2f& localRoi);
+bool findArmor(Armor& armor, const Circlelight& circlelight, const Arrow& arrow);
 
-    // Armor detector
-    bool findArmorCirclelight(const cv::Mat &image, Circlelight &circlelight, const cv::Rect2f &globalRoi, const cv::Rect2f &localRoi);
-    bool findArmor(Armor &armor, const Circlelight &circlelight, const Arrow &arrow);
+// Center R detector
+bool findCenterLightlines(const cv::Mat& binary, std::vector<Lightline>& lightlines, const cv::Rect2f& globalRoi, const cv::Rect2f& localRoi);
+bool findCenterR(CenterR& center, const std::vector<Lightline>& lightlines, const Arrow& arrowPtr, const Armor& armor);
 
-    // Center R detector
-    bool findCenterLightlines(const cv::Mat &binary, std::vector<Lightline> &lightlines,
-                              const cv::Rect2f &globalRoi, const cv::Rect2f &localRoi);
-    bool findCenterR(CenterR &center, const std::vector<Lightline> &lightlines, const Arrow &arrowPtr,
-                     const Armor &armor);
+// utility
+void resetRoi(cv::Rect2f& rect, const cv::Mat& mat);
+void resetRoi(cv::Rect2f& rect, int rows, int cols);
+double calAngleBetweenLightlines(const Lightline& l1, const Lightline& l2);
+void resetRoi(cv::Rect2f& rect, const cv::Mat& mat);
+void resetRoi(cv::Rect2f& rect, const cv::Rect2f& lastRoi);
+void resetRoi(cv::Rect2f& rect, int rows, int cols);
+bool inRect(const cv::Point2f& point, const cv::Rect2f& rect);
 
-    // Utility
-    void resetRoi(cv::Rect2f &rect, const cv::Mat &mat);
-    void resetRoi(cv::Rect2f &rect, int rows, int cols);
-    double calAngleBetweenLightlines(const Lightline &l1, const Lightline &l2);
-    void resetRoi(cv::Rect2f &rect, const cv::Mat &mat);
-    void resetRoi(cv::Rect2f &rect, const cv::Rect2f &lastRoi);
-    void resetRoi(cv::Rect2f &rect, int rows, int cols);
-    bool inRect(const cv::Point2f &point, const cv::Rect2f &rect);
+/**
+ * @brief 检测类，负责对图像的处理和目标的检测，得到所有特征点的像素坐标，以及点亮的装甲板数目。
+ */
+class Detector {
+public:
+    Detector();
+    bool detect(const Frame& frame);
+    void drawTargetPoint(const cv::Point2f& point);
+    inline void visualize() {
+        cv::imshow("visualized", m_imageShow);
+    }
 
-    /**
-     * @brief 检测类，负责对图像的处理和目标的检测，得到所有特征点的像素坐标，以及点亮的装甲板数目。
-     */
-    class Detector
-    {
-    public:
-        Detector();
-        bool detect(const Frame &frame);
-        void drawTargetPoint(const cv::Point2f &point);
-        inline void visualize() { cv::imshow("visualized", m_imageShow); }
-
-        /**
-         * @brief
-         * 得到像素坐标系特征点，分别为装甲板的左下、左上、右上、右下、中心 R
-         * @return std::vector<cv::Point2f>
-         */
-        inline std::vector<cv::Point2f> getCameraPoints()
-        {
-            return {m_armor.m_bl, m_armor.m_tl, m_armor.m_tr, m_armor.m_br, m_centerR.m_center};
-        }
-
-    private:
-        cv::Mat m_imageRaw;                                // 原图
-        cv::Mat m_imageArrow;                              // 检测箭头用的二值化图片
-        cv::Mat m_imageArmor;                              // 检测装甲板边框用的二值化图片
-        cv::Mat m_imageCenter;                             // 检测中心 R 用的二值化图片
-        cv::Mat m_imageShow;                               // 可视化图片
-        cv::Mat m_localMask;                               // 局部 roi 的掩码
-        cv::Rect2f m_globalRoi;                            // 全局 roi ，用来圈定识别的范围，加快处理速度
-        cv::Rect2f m_armorRoi;                             // 装甲板 roi
-        cv::Rect2f m_centerRoi;                            // 中心 R roi
-        Arrow m_arrow;                                     // 箭头
-        Armor m_armor;                                     // 装甲板
-        CenterR m_centerR;                                 // 中心 R
-        std::chrono::steady_clock::time_point m_startTime; // 检测开始的时间戳
-        std::chrono::steady_clock::time_point m_frameTime; // 当前帧的时间戳
-        int m_lightArmorNum;                               // 点亮的装甲板数目
-        Status m_status;                                   // 检测标志，包括成功、箭头检测失败、装甲板检测失败、中心 R 检测失败
-        void preprocess(const Frame &frame);
-        bool detectArrow();
-        void setLocalRoi();
-        bool detectArmor();
-        bool detectCenterR();
-        void setArmor();
-        void setGlobalRoi();
-        void draw(const Lightline &lightline, const cv::Scalar &color, const int thickness = 1,
-                  const cv::Rect2f &localRoi = cv::Rect2f(0, 0, Param::IMAGE_WIDTH, Param::IMAGE_HEIGHT));
-        void draw(const cv::RotatedRect &rotatedRect, const cv::Scalar &color, const int thickness = 1,
-                  const cv::Rect2f &localRoi = cv::Rect2f(0, 0, Param::IMAGE_WIDTH, Param::IMAGE_HEIGHT));
-        void draw(const cv::Rect2f &rect, const cv::Scalar &color, const int thickness = 1,
-                  const cv::Rect2f &localRoi = cv::Rect2f(0, 0, Param::IMAGE_WIDTH, Param::IMAGE_HEIGHT));
-        void draw(const std::vector<cv::Point2f> &points, const cv::Scalar &color, const int thickness = 1,
-                  const cv::Rect2f &localRoi = cv::Rect2f(0, 0, Param::IMAGE_WIDTH, Param::IMAGE_HEIGHT));
-        void draw(const cv::Point2f *points, const std::size_t size, const cv::Scalar &color,
-                  const int thickness = 1,
-                  const cv::Rect2f &localRoi = cv::Rect2f(0, 0, Param::IMAGE_WIDTH, Param::IMAGE_HEIGHT));
-    };
+private:
+    cv::Mat m_imageRaw;     // 原图
+    cv::Mat m_imageArrow;   // 检测箭头用的二值化图片
+    cv::Mat m_imageArmor;   // 检测装甲板边框用的二值化图片
+    cv::Mat m_imageCenter;  // 检测中心 R 用的二值化图片
+    cv::Mat m_imageShow;    // 可视化图片
+    cv::Mat m_localMask;    // 局部 roi 的掩码
+    cv::Rect2f m_globalRoi; // 全局 roi ，用来圈定识别的范围，加快处理速度
+    cv::Rect2f m_armorRoi;  // 装甲板 roi
+    cv::Rect2f m_centerRoi; // 中心 R roi
+    Arrow m_arrow;          // 箭头
+    Armor m_armor;          // 装甲板
+    CenterR m_centerR;      // 中心 R
+    Status m_status;        // 检测标志，包括成功、箭头检测失败、装甲板检测失败、中心 R 检测失败
+    void preprocess(const Frame& frame);
+    bool detectArrow();
+    void setLocalRoi();
+    bool detectArmor();
+    bool detectCenterR();
+    void setArmor();
+    void setGlobalRoi();
+    void draw(const Lightline& lightline, const cv::Scalar& color, const int thickness = 1, const cv::Rect2f& localRoi = cv::Rect2f(0, 0, Param::IMAGE_WIDTH, Param::IMAGE_HEIGHT));
+    void draw(const cv::RotatedRect& rotatedRect, const cv::Scalar& color, const int thickness = 1, const cv::Rect2f& localRoi = cv::Rect2f(0, 0, Param::IMAGE_WIDTH, Param::IMAGE_HEIGHT));
+    void draw(const cv::Rect2f& rect, const cv::Scalar& color, const int thickness = 1, const cv::Rect2f& localRoi = cv::Rect2f(0, 0, Param::IMAGE_WIDTH, Param::IMAGE_HEIGHT));
+    void draw(const std::vector<cv::Point2f>& points, const cv::Scalar& color, const int thickness = 1, const cv::Rect2f& localRoi = cv::Rect2f(0, 0, Param::IMAGE_WIDTH, Param::IMAGE_HEIGHT));
+    void draw(const cv::Point2f* points, const std::size_t size, const cv::Scalar& color, const int thickness = 1, const cv::Rect2f& localRoi = cv::Rect2f(0, 0, Param::IMAGE_WIDTH, Param::IMAGE_HEIGHT));
+};
 
 } // namespace rune
