@@ -127,6 +127,7 @@ private:
     cv::Mat m_imageArrow;   // 检测箭头用的二值化图片
     cv::Mat m_imageArmor;   // 检测装甲板边框用的二值化图片
     cv::Mat m_imageCenter;  // 检测中心 R 用的二值化图片
+    cv::Mat m_imageCenter_ori; // 检测中心 R 用的二值化图片
     cv::Mat m_imageShow;    // 可视化图片
     cv::Mat m_localMask;    // 局部 roi 的掩码
     cv::Rect2f m_globalRoi; // 全局 roi ，用来圈定识别的范围，加快处理速度

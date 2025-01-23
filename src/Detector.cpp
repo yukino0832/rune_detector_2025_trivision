@@ -3,8 +3,6 @@
 namespace rune {
 std::mutex MUTEX;
 
-double Arrow_angle;
-
 /**
  * @brief Construct a new Lightline:: Lightline object
  * @param[in] contour       轮廓点集
@@ -217,7 +215,6 @@ bool findArrow(Arrow& arrow, const std::vector<Lightline>& lightlines, const cv:
     {
         return false;
     }
-    Arrow_angle = arrow.m_angle;
     return true;
 }
 
@@ -296,6 +293,7 @@ bool findArmorCirclelight(const cv::Mat& image, Circlelight& circlelight, const 
         std::cout << "没有符合条件的圆" << std::endl;
         return false;
     }
+
     // 更新半径最大的圆
     cv::Vec3f max_circle = *std::max_element(circles.begin(), circles.end(), [](const cv::Vec3f& a, const cv::Vec3f& b) {
         return a[2] < b[2];
@@ -317,7 +315,7 @@ bool findArmorCirclelight(const cv::Mat& image, Circlelight& circlelight, const 
  */
 bool findArmor(Armor& armor, const Circlelight& circlelight_possible, const Arrow& arrow) {
     // 此处判断装甲板中心与箭头中心的距离，如果不符则检测失败
-    if (inRange(pointPointDistance(circlelight_possible.m_center, arrow.m_center), arrow.m_length * 0.8, arrow.m_length * 1.5) == false)
+    if (inRange(pointPointDistance(circlelight_possible.m_center, arrow.m_center), arrow.m_length * 0.5, arrow.m_length * 2) == false)
     {
         return false;
     }
@@ -623,15 +621,14 @@ void Detector::preprocess(const Frame& frame) {
     double low_thresh = 18;   // 设置小于此值的部分为黑色
     double high_thresh = 100; // 设置大于此值的部分为黑色
     cv::inRange(temp, low_thresh, high_thresh, m_imageArmor);
+    // cv::threshold(temp, m_imageArmor, Param::ARMOR_BRIGHTNESS_THRESHOLD, Param::MAX_BRIGHTNESS, cv::THRESH_BINARY);
     cv::Mat kernel3 = cv::Mat::ones(3, 3, CV_8U);
     cv::erode(m_imageArmor, m_imageArmor, kernel3, cv::Point(-1, -1), 2);
     cv::Mat kernel5 = cv::Mat::ones(5, 5, CV_8U);
     cv::dilate(m_imageArmor, m_imageArmor, kernel5, cv::Point(-1, -1), 2);
-    // cv::threshold(temp, m_imageArmor, Param::ARMOR_BRIGHTNESS_THRESHOLD, Param::MAX_BRIGHTNESS,
-    //               cv::THRESH_BINARY);
-    cv::threshold(temp, m_imageCenter, Param::ARMOR_BRIGHTNESS_THRESHOLD, Param::MAX_BRIGHTNESS, cv::THRESH_BINARY);
+    cv::threshold(temp, m_imageCenter_ori, Param::ARMOR_BRIGHTNESS_THRESHOLD, Param::MAX_BRIGHTNESS, cv::THRESH_BINARY);
 #if SHOW_IMAGE >= 3
-    cv::imshow("temp", temp);
+    // cv::imshow("temp", temp);
     cv::imshow("arrow binary", m_imageArrow);
     cv::imshow("armor binary", m_imageArmor);
     cv::waitKey(1);
@@ -793,7 +790,7 @@ RESTART:
  * @return false
  */
 bool Detector::detectCenterR() {
-    m_imageCenter = (m_imageCenter & m_localMask)(m_centerRoi);
+    m_imageCenter = (m_imageCenter_ori & m_localMask)(m_centerRoi);
     // 寻找中心灯条，可能是多个
     std::vector<Lightline> lightlines;
     if (findCenterLightlines(m_imageCenter, lightlines, m_globalRoi, m_centerRoi) == false)
